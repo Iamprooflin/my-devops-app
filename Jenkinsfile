@@ -9,6 +9,19 @@ pipeline {
 
     stages {
 
+        stage('Check Skip CI') {
+            steps {
+                script {
+                    def lastCommitMessage = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    if (lastCommitMessage.contains('[skip ci]')) {
+                        echo "Skipping build - this commit was made by Jenkins itself"
+                        currentBuild.result = 'ABORTED'
+                        error('Stopping pipeline - skip ci marker found')
+                    }
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
                 checkout scm
@@ -39,7 +52,6 @@ pipeline {
 
         stage('Update Helm Chart') {
             steps {
-                // values.yaml ke andar purana tag dhundo aur naye se replace karo
                 sh "sed -i 's|tag:.*|tag: \"${IMAGE_TAG}\"|' myapp-chart/values.yaml"
 
                 withCredentials([usernamePassword(
@@ -51,7 +63,7 @@ pipeline {
                         git config user.email "jenkins@local.com"
                         git config user.name "Jenkins"
                         git add myapp-chart/values.yaml
-                        git commit -m "Update image tag to ${IMAGE_TAG}"
+                        git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
                         git push https://${GIT_USER}:${GIT_TOKEN}@github.com/Iamprooflin/my-devops-app.git HEAD:main
                     """
                 }
@@ -65,6 +77,9 @@ pipeline {
         }
         failure {
             echo "Pipeline failed — check logs above"
+        }
+        aborted {
+            echo "Build aborted - likely a skip-ci commit from Jenkins itself"
         }
     }
 }
