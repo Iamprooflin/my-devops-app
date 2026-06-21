@@ -5,7 +5,7 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     return jsonify({
-        "message": "Hello! My DevOps App is running and my name is Sakshi, this is my first app!",
+        "message": "Hello! My DevOps App is running and my name is Sakshi, and i am working as devops engineer!",
         "status": "healthy",
         "version": "1.0.0"
     })
