@@ -17,7 +17,6 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                // bat ki jagah sh use kiya - kyunki Jenkins Linux container mein hai
                 sh "docker build -t myapp:${IMAGE_TAG} ."
             }
         }
@@ -37,11 +36,32 @@ pipeline {
                 }
             }
         }
+
+        stage('Update Helm Chart') {
+            steps {
+                // values.yaml ke andar purana tag dhundo aur naye se replace karo
+                sh "sed -i 's|tag:.*|tag: \"${IMAGE_TAG}\"|' myapp-chart/values.yaml"
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-credentials',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh """
+                        git config user.email "jenkins@local.com"
+                        git config user.name "Jenkins"
+                        git add myapp-chart/values.yaml
+                        git commit -m "Update image tag to ${IMAGE_TAG}"
+                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/Iamprooflin/my-devops-app.git HEAD:main
+                    """
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo "Pipeline complete! Image pushed: ${ECR_REPO}:${IMAGE_TAG}"
+            echo "Pipeline complete! New tag: ${IMAGE_TAG} — ArgoCD will auto-deploy"
         }
         failure {
             echo "Pipeline failed — check logs above"
