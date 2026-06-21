@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: 407291110113.dkr.ecr.us-east-1.amazonaws.com/my-devops-app
   pullPolicy: IfNotPresent
-  tag: "v47"
+  tag: "v48"
 
 imagePullSecrets:
   - name: ecr-secret
